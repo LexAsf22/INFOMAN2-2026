@@ -3,23 +3,20 @@
 CREATE OR REPLACE FUNCTION log_product_changes()
 RETURNS trigger AS $$
 BEGIN
-    -- Handle INSERT operations
     IF TG_OP = 'INSERT' THEN
         INSERT INTO products_audit (product_id, change_type, new_name, new_price)
         VALUES (NEW.product_id, 'INSERT', NEW.name, NEW.price);
         RETURN NEW;
     END IF;
 
-    -- Handle DELETE operations
     IF TG_OP = 'DELETE' THEN
         INSERT INTO products_audit (product_id, change_type, old_name, old_price)
         VALUES (OLD.product_id, 'DELETE', OLD.name, OLD.price);
         RETURN OLD;
     END IF;
 
-    -- Handle UPDATE operations
     IF TG_OP = 'UPDATE' THEN
-        -- Only log if the name or price has changed
+
         IF NEW.name IS DISTINCT FROM OLD.name OR NEW.price IS DISTINCT FROM OLD.price THEN
             INSERT INTO products_audit (
                 product_id,
@@ -40,7 +37,6 @@ BEGIN
         RETURN NEW;
     END IF;
 
-    -- Should never reach here
     RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
@@ -81,15 +77,12 @@ SELECT * FROM products_audit ORDER BY audit_id;
 SELECT * FROM products_audit ORDER BY audit_id;
 
 
-
--- BONUS CHALLENGE
+--BONUS CHALLENGE
 
 1. 
-
 CREATE OR REPLACE FUNCTION set_last_modified()
 RETURNS trigger AS $$
 BEGIN
-    -- Update the last_modified column to the current timestamp
     NEW.last_modified := NOW();
     RETURN NEW;
 END;
@@ -97,24 +90,21 @@ $$ LANGUAGE plpgsql;
 
 
 2. 
-
 CREATE TRIGGER set_last_modified_trigger
 BEFORE UPDATE ON products
 FOR EACH ROW
 EXECUTE FUNCTION set_last_modified();
 
+3. Because we want to change the row before saving it to the table. AFTER UPDATE would be too late to modify the value in the row that is being updated.
 
-3. 
 
--- Check current last_modified values
+4. 
 SELECT product_id, name, last_modified FROM products;
 
--- Update a product
 UPDATE products
 SET price = 250.00
 WHERE name = 'Mega Gadget v2';
 
--- Check that last_modified is updated automatically
 SELECT product_id, name, price, last_modified FROM products;
 
 
